@@ -22,7 +22,6 @@ expo-env.d.ts
 .metro-health-check*
 
 # debug
-npm-debug.*
 yarn-debug.*
 yarn-error.*
 
@@ -35,3 +34,4 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+密码本/
