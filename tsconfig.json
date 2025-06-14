@@ -1,6 +1,14 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true
-  }
+    "strict": true,
+
+    // ▶️ 新增以下几行，强制 TS 以 React Native 模式解析 JSX
+    "jsx": "react-native",
+    "jsxImportSource": "react",
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true
+  },
+  // ▶️ 确保 .tsx 被包含进来
+  "include": ["**/*.ts", "**/*.tsx"]
 }

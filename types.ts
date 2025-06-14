@@ -1,8 +1,7 @@
-// types.ts
 export type RootStackParamList = {
   Landing: undefined;
   Login: undefined;
   Home: undefined;
-  CreateTask: undefined;
-  WhispererScreen: undefined; // ✅ 一定要写上你报错的这个页面名
+  CreateTask: { serviceId: string }; // ✅ 支持从服务大厅跳转时传参数
+  WhispererScreen: undefined;
 };

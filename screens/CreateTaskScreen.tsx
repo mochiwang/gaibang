@@ -7,16 +7,30 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
 import { useUserStore } from '../store/useUserStore';
-import { useNavigation } from '@react-navigation/native';
+import type { RootStackParamList } from '../types';
+
+type CreateTaskRouteProp = RouteProp<RootStackParamList, 'CreateTask'>;
+
+const serviceLabels: Record<string, string> = {
+  moving: '搬家服务',
+  cleaning: '清洁服务',
+  handyman: '安装维修',
+  furniture: '家具组装',
+};
 
 export default function CreateTaskScreen() {
   const navigation = useNavigation();
+  const route = useRoute<CreateTaskRouteProp>();
+  const { serviceId } = route.params;
+
   const user = useUserStore((state) => state.user);
   const userId = user?.id;
 
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState(`我需要${serviceLabels[serviceId] || '帮忙'}`);
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [budget, setBudget] = useState('');
@@ -41,11 +55,12 @@ export default function CreateTaskScreen() {
     const { error } = await supabase.from('tasks').insert([
       {
         created_by: userId,
+        service_id: serviceId,
         title,
         description,
         location,
         budget: budgetValue,
-        status: 'posted', // ✅ 默认状态
+        status: 'posted',
         created_at: new Date().toISOString(),
       },
     ]);
@@ -59,13 +74,13 @@ export default function CreateTaskScreen() {
       setDescription('');
       setLocation('');
       setBudget('');
-      navigation.goBack(); // ✅ 发布成功后返回上一页（或跳转任务列表）
+      navigation.goBack();
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>📝 发布一个新任务</Text>
+      <Text style={styles.header}>📝 发布一个新任务（{serviceLabels[serviceId]}）</Text>
 
       <TextInput
         style={styles.input}

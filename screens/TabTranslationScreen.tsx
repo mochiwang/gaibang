@@ -58,7 +58,7 @@ export default function LandingScreen() {
   const menuItems = user
     ? user.role === 'client'
       ? [
-          { label: '📝 发布任务', action: () => navigation.navigate('CreateTask') },
+          { label: '📝 发布任务', action: () => navigation.navigate('CreateTask', { serviceId: 'manual' }) },
           { label: '📋 我的任务', action: () => console.log('查看任务') },
           { label: '📊 翻译 / AI 用量', action: () => console.log('查看用量') },
           { label: '🔁 切换为服务者', action: handleSwitchRole },
