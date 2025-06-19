@@ -1,98 +1,184 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
   FlatList,
+  Image,
+  TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
+import { supabase } from '../lib/supabase';
 
-const services = [
-  { id: 'moving', title: '搬家服务', emoji: '📦' },
-  { id: 'cleaning', title: '清洁服务', emoji: '🧹' },
-  { id: 'handyman', title: '安装维修', emoji: '🔧' },
-  { id: 'furniture', title: '家具组装', emoji: '🪑' },
-];
+type Tasker = {
+  id: string;
+  name: string;
+  avatar_url?: string;
+  hourly_rate: number;
+  bio: string;
+  service_type: string;
+  rating?: number;
+  review_count?: number;
+  task_count?: number;
+};
 
 export default function TabMarketScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute();
+  const { serviceId, lat, lng } = route.params as {
+    serviceId: string;
+    lat?: number;
+    lng?: number;
+  };
 
-  const handleSelectService = (serviceId: string) => {
-    navigation.navigate('CreateTask', { serviceId });
+  const [taskers, setTaskers] = useState<Tasker[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchNearbyTaskers = async () => {
+      setLoading(true);
+      let data = [];
+
+      if (lat && lng) {
+        const result = await supabase.rpc('get_nearby_taskers', {
+          service_type_input: serviceId,
+          user_lat: lat,
+          user_lng: lng,
+          radius_meters: 10000,
+        });
+        if (result.error) {
+          console.error('❌ RPC 错误:', result.error.message);
+        } else {
+          data = result.data;
+        }
+      } else {
+        const result = await supabase
+          .from('taskers')
+          .select('*')
+          .eq('service_type', serviceId);
+
+        if (result.error) {
+          console.error('❌ 获取失败:', result.error.message);
+        } else {
+          data = result.data;
+        }
+      }
+
+      setTaskers(data as Tasker[]);
+      setLoading(false);
+    };
+
+    fetchNearbyTaskers();
+  }, [serviceId, lat, lng]);
+
+  const handlePress = (tasker: Tasker) => {
+    navigation.navigate('TaskerProfile', { taskerId: tasker.id });
   };
 
   return (
-    <>
-      {/* 锁定 TS 的 JSX 解析，不会把下面的 <SafeAreaView> 当成类型 */}
-      <></>
+    <View style={styles.container}>
+      <Text style={styles.title}>附近的 {serviceId} 服务者</Text>
 
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.title}>请选择你需要的服务：</Text>
-
+      {loading ? (
+        <ActivityIndicator size="large" color="#555" />
+      ) : (
         <FlatList
-          data={services}
-          numColumns={2}
+          data={taskers}
           keyExtractor={(item) => item.id}
-          columnWrapperStyle={styles.row}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={{ paddingBottom: 40 }}
           renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.card}
-              onPress={() => handleSelectService(item.id)}
-            >
-              <Text style={styles.emoji}>{item.emoji}</Text>
-              <Text style={styles.label}>{item.title}</Text>
+            <TouchableOpacity style={styles.card} onPress={() => handlePress(item)}>
+              <Image
+                source={{ uri: item.avatar_url || 'https://i.pravatar.cc/100?img=8' }}
+                style={styles.avatar}
+              />
+
+              <View style={styles.info}>
+                <View style={styles.rowBetween}>
+                  <Text style={styles.name}>{item.name || '未命名服务者'}</Text>
+                  <Text style={styles.price}>
+                    ${item.hourly_rate.toFixed(2)}/hr
+                  </Text>
+                </View>
+
+                <Text style={styles.meta}>
+                  ⭐ {item.rating?.toFixed(1) || '5.0'} ({item.review_count || 0} reviews) · {item.task_count || 0} tasks
+                </Text>
+
+                <Text style={styles.bio} numberOfLines={2}>
+                  {item.bio || '暂无简介'}
+                </Text>
+
+                <Text style={styles.link}>查看资料 →</Text>
+              </View>
             </TouchableOpacity>
           )}
         />
-      </SafeAreaView>
-    </>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fafafa',
+    backgroundColor: '#fff',
     paddingHorizontal: 20,
     paddingTop: 30,
   },
   title: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '600',
-    marginBottom: 20,
-    color: '#222',
-  },
-  list: {
-    paddingBottom: 40,
-  },
-  row: {
-    justifyContent: 'space-between',
     marginBottom: 20,
   },
   card: {
-    backgroundColor: '#fff',
-    width: '48%',
+    flexDirection: 'row',
+    backgroundColor: '#f8f8f8',
     borderRadius: 12,
-    paddingVertical: 30,
+    padding: 16,
+    marginBottom: 16,
+  },
+  avatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#ddd',
+    marginRight: 16,
+  },
+  info: {
+    flex: 1,
+  },
+  rowBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
-    elevation: 3,
   },
-  emoji: {
-    fontSize: 40,
-    marginBottom: 10,
+  name: {
+    fontSize: 18,
+    fontWeight: '600',
   },
-  label: {
+  price: {
     fontSize: 16,
     fontWeight: '500',
+    color: '#007b7f',
+  },
+  meta: {
+    marginTop: 4,
+    fontSize: 14,
+    color: '#666',
+  },
+  bio: {
+    marginTop: 6,
+    fontSize: 15,
+    color: '#333',
+  },
+  link: {
+    marginTop: 6,
+    color: '#007b7f',
+    fontWeight: '500',
+    fontSize: 14,
   },
 });
